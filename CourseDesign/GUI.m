@@ -22,7 +22,7 @@ function varargout = GUI(varargin)
 
 % Edit the above text to modify the response to help GUI
 
-% Last Modified by GUIDE v2.5 23-Dec-2018 11:39:47
+% Last Modified by GUIDE v2.5 08-Jan-2019 00:17:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -356,3 +356,115 @@ function pushbutton8_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global im
 imtool(im)
+
+
+% --- Executes on button press in pushbutton9.
+function pushbutton9_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton9 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global im
+imgray = rgb2gray(im);
+[filename, pathname]=uigetfile({'*.jpg';'*.bmp';'*.*'},'打开图片');
+%%filename存放文件名，pathname存放路径名
+str=[pathname filename];  					%%字符串拼接，获取图像路径  
+im2=imread(str); 							%%读取图像
+axes(handles.axes3);							%%打开axes2的句柄，进行axes2的操作
+imshow(im2); 								%%在axes2中显示图像
+load westconcordpoints  						%%创建一个透视变换的变换结构
+base_points=[0 0;0 0;0 0;0 0]; input_points=[0 0;0 0;0 0;0 0]; 		%%定义控制点的初值
+[input_points,base_points]=cpselect(im,im2,input_points,base_points,'Wait',true); 
+%%打开控制点选择工具,选择控制点后把值覆盖原控制点
+t_concord=cp2tform(input_points,base_points,'projective'); 		%%获得预配准图像的信息
+info=imfinfo(str); 										%%参数必须是字符串
+registered=imtransform(im,t_concord,'XData',[1 info.Width],'YData',[1 info.Height]); 
+%%进行图像配准
+axes(handles.axes2); %%弹出图片        
+imshow(registered); 			%%显示处理后的结果
+
+
+% --- Executes on button press in pushbutton10.
+function pushbutton10_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton10 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global im
+im2 = rgb2gray(im);
+axes(handles.axes3);
+imshow(im2);
+I = histeq(im2);
+axes(handles.axes2);
+imshow(I);
+
+
+% --- Executes on button press in pushbutton11.
+function pushbutton11_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton11 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global im
+I=rgb2gray(im);	 						%%图片灰化
+I=double(I);  							%%类型转变
+axes(handles.axes2);		 				%%打开axes2的句柄
+mesh(flip(I,1)); 						%%输出三维图
+
+
+
+function edit8_Callback(hObject, eventdata, handles)
+% hObject    handle to edit8 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit8 as text
+%        str2double(get(hObject,'String')) returns contents of edit8 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit8_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit8 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in pushbutton12.
+function pushbutton12_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton12 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+I=imread('text.png');  						%%读取系统自带的图片
+axes(handles.axes1);
+imshow(I);  								%%显示原图
+a=I(32:45,88:98);  							%%获取图片中的字母a
+c=real(ifft2(fft2(I).*fft2(rot90(a,2),256,256))); 	%%傅里叶变换与反变换
+axes(handles.axes2);
+imshow(c);  								%%显示处理后图片
+
+
+% --- Executes on button press in pushbutton13.
+function pushbutton13_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton13 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+I=getimage(handles.axes1); 					%%获取axes1上的图片
+I=rgb2gray(I);								%%图片灰化，从彩色的三维变成灰色的二维
+I=imresize(I,[512 512]); 						%%把图片的像素变成512*512
+S=qtdecomp(I,.27);
+blocks=repmat(uint8(0),size(S));
+for dim=[512 256 128 64 32 16 8 4 2 1];			%%循环获取四叉树分解后的子块信息
+    numblocks=length(find(S==dim));
+    if(numblocks>0)
+        values=repmat(uint8(1),[dim dim numblocks]);
+        values(2:dim,2:dim,:)=0;
+        blocks=qtsetblk(blocks,S,dim,values);
+    end
+end
+blocks(end,1:end)=1;
+blocks(1:end,end)=1;
+axes(handles.axes2);
+imshow(blocks,[]);
